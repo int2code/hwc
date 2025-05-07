@@ -2,35 +2,27 @@
 name = "hwc"
 description = "High level interfaces and implementations to simplify communication with IO devices."
 requires-python = ">=3.11"
-license = {file = "LICENSE.txt"}
+license = {file = "LICENSE"}
 maintainers = [
   {name = "Piotr Sznapka", email = "piotr.sznapka@int2code.com" },
   {name = "Marcin Tomiczek", email = "marcin.tomiczek@int2code.com" }
 ]
 dynamic = ["dependencies", "version", "readme", "optional-dependencies"]
 
-[tool.setuptools]
-# If there are data files included in your packages that need to be
-# installed, specify them here.
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
-version = {file = "version.txt"}
 readme = {file = ["README.md"]}
 
 [tool.setuptools_scm]
 write_to = "src/hwc/_version.py"
 
 [tool.setuptools.dynamic.optional-dependencies]
-# List additional groups of dependencies here (e.g. development
-# dependencies). Users will be able to install these using the "extras"
-# syntax, for example:
-#
-#   $ pip install sampleproject[dev]
 test = {file = ["requirements-test.txt"]}
 dev = {file = ["requirements-test.txt", "requirements-dev.txt"]}
+docs = { file = ["requirements-test.txt", "docs/requirements.txt"]  }
 
 [build-system]
 # These are the assumed default build requirements from pip:
