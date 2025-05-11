@@ -4,18 +4,6 @@ from abc import ABC, abstractmethod, ABCMeta
 from typing import List, TypeVar
 
 
-class SingletonMeta(ABCMeta):
-    """Singleton metaclass for AbstractMeta."""
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            instance = super().__call__(*args, **kwargs)
-            cls._instances[cls] = instance
-        return cls._instances[cls]
-
-
 class SignalsEngine(ABC):
     """Abstract class for Signals' Engine."""
 
@@ -94,7 +82,7 @@ class Signal:
         self._new_state = value
 
 
-class Signals(metaclass=SingletonMeta):
+class Signals:
     """Base Signals container."""
 
     def __init__(self, engine: SignalsEngine) -> None:
