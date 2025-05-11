@@ -1,6 +1,6 @@
 ### 0.2.0
 
-[MINOR] Signals and SignalsEngine are not longer "Singleton".
+[MINOR] Signals and SignalsEngine are no longer "Singleton".
 
 Additionally, fixed import error for "FramerType". 
 
