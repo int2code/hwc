@@ -1,6 +1,6 @@
 """Provide base classes and types for hardware signal representation."""
 
-from abc import ABC, abstractmethod, ABCMeta
+from abc import ABC, abstractmethod
 from typing import List, TypeVar
 
 
