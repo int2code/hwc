@@ -59,9 +59,9 @@ from pymodbus.exceptions import (
     ModbusException,
     ModbusIOException,
 )
-from pymodbus.framer.framer import (
+from pymodbus.framer.framer import (  # pylint: disable=import-error, no-name-in-module
     FramerType,
-)  # pylint: disable=import-error, no-name-in-module
+)
 from retry import retry
 
 from hwc.common import SignalProperties, SignalsEngine
