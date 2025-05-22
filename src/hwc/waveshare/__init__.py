@@ -59,7 +59,9 @@ from pymodbus.exceptions import (
     ModbusException,
     ModbusIOException,
 )
-from pymodbus.framer.base import FramerType
+from pymodbus.framer.base import (
+    FramerType,
+)
 from retry import retry
 
 from hwc.common import SignalProperties, SignalsEngine
@@ -82,7 +84,9 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
 
     _SIGNAL_PROPERTY_TYPE = SignalPropertiesWaveShareEthMb
 
-    def __init__(self, host_ip: str, port=4196, slave=1, number_of_relays: int = 30) -> None:
+    def __init__(
+        self, host_ip: str, port=4196, slave=1, number_of_relays: int = 30
+    ) -> None:
         super().__init__()
         self._slave = slave
         self._number_of_relays = number_of_relays
