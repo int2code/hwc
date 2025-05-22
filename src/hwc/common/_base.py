@@ -119,6 +119,11 @@ class Signals(metaclass=SingletonMeta):
         """Set all updated signal states using given engine."""
         self._engine.write_states()
 
+    def set_engine(self, engine) -> None:
+        """Set engine instance."""
+        self._engine = engine
+        self._engine.associate_signal_members(self.__signal_members__)
+
     def __iter__(self):
         self._next_index = 0
         return self
