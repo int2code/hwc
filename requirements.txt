@@ -1,3 +1,3 @@
-pymodbus
+pymodbus~=3.9
 pyserial
 retry

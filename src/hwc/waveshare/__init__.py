@@ -59,7 +59,7 @@ from pymodbus.exceptions import (
     ModbusException,
     ModbusIOException,
 )
-from pymodbus.framer.framer import (  # pylint: disable=import-error, no-name-in-module
+from pymodbus.framer.base import (
     FramerType,
 )
 from retry import retry
