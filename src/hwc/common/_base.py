@@ -120,7 +120,8 @@ class Signals(metaclass=SingletonMeta):
         self._engine.write_states()
 
     def set_engine(self, engine) -> None:
-        """Set engine instance."""
+        """Set engine instance.
+        :param engine: engine instance to be set"""
         self._engine = engine
         self._engine.associate_signal_members(self.__signal_members__)
 
