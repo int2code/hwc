@@ -46,6 +46,7 @@ Example configuration:
 
 
 """
+
 import time
 from dataclasses import dataclass
 from typing import List, Literal
@@ -58,6 +59,7 @@ from hwc.common import SignalProperties, SignalsEngine
 # pylint notice similarity between AVT and waveshare implementations
 # but there's no reason to extract it to base class or make it a template method
 # pylint:disable=R0801
+
 
 @dataclass
 class SignalPropertiesAvt5710(SignalProperties):
@@ -79,8 +81,8 @@ class SignalEnginAvt5710(SignalsEngine):
     """
 
     _SIGNAL_PROPERTY_TYPE = SignalPropertiesAvt5710
-    _START_CHR = b"\x1B"  # Esc
-    _STOP_CHR = b"\x0D"  # Enter
+    _START_CHR = b"\x1b"  # Esc
+    _STOP_CHR = b"\x0d"  # Enter
     _SET_CMD = b"S"
     _RST_CMD = b"C"
     _COM_BAUD_RATE = 19200

@@ -1,4 +1,5 @@
 """Hardware control for Manson PSU."""
+
 import serial
 
 
@@ -10,6 +11,7 @@ class MansonPSU:
     :param timeout: Timeout for serial communication in seconds
 
     """
+
     def __init__(self, port: str, baudrate: int = 9600, timeout: int = 1):
         """Initialize the serial connection to the Manson power supply unit."""
         self.port = port
@@ -25,7 +27,7 @@ class MansonPSU:
             timeout=self.timeout,
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE
+            stopbits=serial.STOPBITS_ONE,
         )
 
     def disconnect(self):
@@ -39,10 +41,10 @@ class MansonPSU:
         :param command: command to send
         :return: response from the PSU
         """
-        command = command.strip() + '\r'
+        command = command.strip() + "\r"
         with self._serial as connection:
-            connection.write(command.encode('ascii'))
-            response = connection.readline().decode('ascii').strip()
+            connection.write(command.encode("ascii"))
+            response = connection.readline().decode("ascii").strip()
 
         return response
 
@@ -52,7 +54,7 @@ class MansonPSU:
         :param voltage: desired voltage
         :return: PSU response as boolean
         """
-        if voltage <= 0 or voltage >=100:
+        if voltage <= 0 or voltage >= 100:
             raise ValueError
 
         command = f"VOLT{int(voltage * 10):03}"
@@ -78,7 +80,7 @@ class MansonPSU:
         :return: output voltage
         """
         response = self.send_command("GETD")
-        if response != '':
+        if response != "":
             return int(response[0:4]) / float(100)
         return False
 
@@ -88,7 +90,7 @@ class MansonPSU:
         :return: output current
         """
         response = self.send_command("GETD")
-        if response != '':
+        if response != "":
             return int(response[4:8]) / float(100)
         return False
 
