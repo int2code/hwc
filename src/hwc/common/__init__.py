@@ -2,7 +2,7 @@
 import time
 from typing import List
 
-from ._base import Signal, Signals, SignalProperties, DISignal, DOSignal, SignalsEngine
+from ._base import Signal, Signals, SignalProperties, DISignal, DOSignal, SignalsEngine, AOSignal
 
 
 def signal_power_cycle(relays_board: Signals, do_signal_names: List[str], cutoff_time_s=0.25):

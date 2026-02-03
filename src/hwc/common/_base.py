@@ -1,6 +1,7 @@
 """Provide base classes and types for hardware signal representation."""
 
 from abc import ABC, abstractmethod
+from random import seed
 from typing import List, TypeVar
 
 
@@ -17,6 +18,9 @@ class SignalsEngine(ABC):
 
         """
         self._signal_members = signal_members
+        for signal in self._signal_members:
+            signal.__read_states__ = self.read_states
+            signal.__write_states__ = self.write_states
 
     @abstractmethod
     def read_states(self) -> None:
@@ -40,11 +44,18 @@ SignalPropertiesBase = TypeVar("SignalPropertiesBase", bound=SignalProperties)
 class Signal:
     """Base Signal representation."""
 
-    def __init__(self, hardware_properties: List[SignalPropertiesBase]):
+    def __init__(
+        self,
+        hardware_properties: List[SignalPropertiesBase],
+        immediate_update: bool = False,
+    ):
+        self.immediate_update = immediate_update
         self._hardware_properties = hardware_properties
         self._state = None
         self._new_state = None
         self.__name__ = ""
+        self.__read_states__ = lambda: None
+        self.__write_states__ = lambda: None
 
     def __str__(self) -> str:
         return f"[{self.__class__.__name__}] {self.__name__}.state: {self._state}"
@@ -137,6 +148,8 @@ class DISignal(Signal):
     @property
     def state(self):
         """State of Digital Input signal."""
+        if self.immediate_update:
+            self.__read_states__()
         return bool(self.__state__)
 
 
@@ -146,6 +159,8 @@ class DOSignal(Signal):
     @property
     def state(self) -> bool:
         """State of Digital Output signal."""
+        if self.immediate_update:
+            self.__read_states__()
         if not self.__state__ == self.__new_state__:
             raise RuntimeError("A new state has not been sent to the device.")
         return bool(self.__state__)
@@ -158,3 +173,29 @@ class DOSignal(Signal):
 
         """
         self.__new_state__ = value
+        if self.immediate_update:
+            self.__write_states__()
+
+
+class AOSignal(Signal):
+    """Digital output signal representation."""
+
+    @property
+    def value(self) -> float:
+        """State of Digital Output signal."""
+        if self.immediate_update:
+            self.__read_states__()
+        if not self.__state__ == self.__new_state__:
+            raise RuntimeError("A new state has not been sent to the device.")
+        return self.__state__
+
+    @value.setter
+    def value(self, value: float) -> None:
+        """Set state of Digital Output signal.
+
+        :param value: new value of digital output signal
+
+        """
+        self.__new_state__ = value
+        if self.immediate_update:
+            self.__write_states__()
