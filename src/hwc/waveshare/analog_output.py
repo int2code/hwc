@@ -6,8 +6,7 @@ https://www.waveshare.com/wiki/Modbus_RTU_Analog_Output_8CH
 
 .. code-block:: python
 
-    from hwc.common import Signals
-    from hwc.common._base import AOSignal
+    from hwc.common import Signals, AOSignal
     from hwc.waveshare.analog_output import (
         SignalPropertiesWSAO8Ch,
         SignalEnginWSAO8Ch,
