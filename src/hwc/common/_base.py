@@ -43,6 +43,16 @@ SignalPropertiesBase = TypeVar("SignalPropertiesBase", bound=SignalProperties)
 class Signal:
     """Base Signal representation."""
 
+    __slots__ = (
+        "immediate_update",
+        "_hardware_properties",
+        "_state",
+        "_new_state",
+        "__name__",
+        "__read_states__",
+        "__write_states__",
+    )
+
     def __init__(
         self,
         hardware_properties: List[SignalPropertiesBase],
@@ -144,6 +154,8 @@ class Signals:
 class DISignal(Signal):
     """Digital input signal representation."""
 
+    __slots__ = Signal.__slots__
+
     @property
     def state(self):
         """State of Digital Input signal."""
@@ -154,6 +166,8 @@ class DISignal(Signal):
 
 class DOSignal(Signal):
     """Digital output signal representation."""
+
+    __slots__ = Signal.__slots__
 
     @property
     def state(self) -> bool:
@@ -176,8 +190,10 @@ class DOSignal(Signal):
             self.__write_states__()
 
 
-class AOSignal(DOSignal):
+class AOSignal(Signal):
     """Digital output signal representation."""
+
+    __slots__ = Signal.__slots__
 
     @property
     def state(self) -> float:
