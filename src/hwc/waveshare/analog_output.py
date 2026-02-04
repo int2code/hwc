@@ -35,21 +35,19 @@ https://www.waveshare.com/wiki/Modbus_RTU_Analog_Output_8CH
 
     # if immediate_update is True, there is no need to call
     # `ao_signals.write_states()` and `ao_signals.read_states()`
-    print(ao_signals.ao1.value)
-    ao_signals.ao1.value = 1.5
-    print(ao_signals.ao1.value)
-    ao_signals.ao2.value = 2.5
-    print(ao_signals.ao2.value)
+    print(ao_signals.ao1.state)
+    ao_signals.ao1.state = 1.5
+    print(ao_signals.ao1.state)
+    ao_signals.ao2.state = 2.5
+    print(ao_signals.ao2.state)
 
 """
 
-
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Tuple
-
 from collections import defaultdict
-from pymodbus import FramerType, ModbusException
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
+from pymodbus import FramerType, ModbusException
 from pymodbus.client.serial import ModbusSerialClient
 from retry import retry
 
@@ -76,7 +74,7 @@ class SignalPropertiesWSAO8Ch(SignalProperties):
         physical_min, physical_max = self.physical_range
         symbolic_min, symbolic_max = self.symbolic_range
 
-        if not (symbolic_min <= symbolic_value <= symbolic_max):
+        if not symbolic_min <= symbolic_value <= symbolic_max:
             raise ValueError(
                 f"Symbolic value {symbolic_value} "
                 f"out of range {symbolic_min}-{symbolic_max}"
@@ -100,7 +98,7 @@ class SignalPropertiesWSAO8Ch(SignalProperties):
         physical_min, physical_max = self.physical_range
         symbolic_min, symbolic_max = self.symbolic_range
 
-        if not (physical_min <= physical_value <= physical_max):
+        if not physical_min <= physical_value <= physical_max:
             raise ValueError(
                 f"Physical value {physical_value} "
                 f"out of range {physical_min}-{physical_max}"
@@ -166,7 +164,7 @@ class SignalEnginWSAO8Ch(SignalsEngine):
                 response = self._modbus.write_registers(
                     address=self._STARTING_ADDRESS,
                     values=states,
-                    slave=device_id,
+                    device_id=device_id,
                 )
                 self._update_state_on_response(device_id, response)
 
@@ -183,7 +181,7 @@ class SignalEnginWSAO8Ch(SignalsEngine):
                 response = self._modbus.read_holding_registers(
                     address=self._STARTING_ADDRESS,
                     count=self._CHANNELS_NUMBER,
-                    slave=device_id,
+                    device_id=device_id,
                 )
                 self._update_state_on_response(device_id, response)
 

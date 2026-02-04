@@ -1,7 +1,6 @@
 """Provide base classes and types for hardware signal representation."""
 
 from abc import ABC, abstractmethod
-from random import seed
 from typing import List, TypeVar
 
 
@@ -177,11 +176,11 @@ class DOSignal(Signal):
             self.__write_states__()
 
 
-class AOSignal(Signal):
+class AOSignal(DOSignal):
     """Digital output signal representation."""
 
     @property
-    def value(self) -> float:
+    def state(self) -> float:
         """State of Digital Output signal."""
         if self.immediate_update:
             self.__read_states__()
@@ -189,8 +188,8 @@ class AOSignal(Signal):
             raise RuntimeError("A new state has not been sent to the device.")
         return self.__state__
 
-    @value.setter
-    def value(self, value: float) -> None:
+    @state.setter
+    def state(self, value: float) -> None:
         """Set state of Digital Output signal.
 
         :param value: new value of digital output signal

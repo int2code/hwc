@@ -55,16 +55,11 @@ from dataclasses import dataclass
 from typing import List, Literal
 
 from pymodbus.client import ModbusTcpClient
-from pymodbus.exceptions import (
-    ModbusException,
-    ModbusIOException,
-)
-from pymodbus.framer.base import (
-    FramerType,
-)
+from pymodbus.exceptions import ModbusException, ModbusIOException
+from pymodbus.framer.base import FramerType
 from retry import retry
 
-from hwc.common import SignalProperties, SignalsEngine
+from ..common import SignalProperties, SignalsEngine
 
 
 @dataclass
@@ -94,8 +89,6 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             host=host_ip,
             port=port,
             framer=FramerType.RTU,
-            reconnect_delay=1,
-            retries=3,
         )
 
     @retry(exceptions=ModbusException, tries=3, delay=1)
@@ -103,7 +96,7 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
         """Read all signal (relay) states from the board."""
         with self._modbus:
             relays_state = self._modbus.read_coils(
-                address=0, count=self._number_of_relays, slave=self._slave
+                address=0, count=self._number_of_relays, device_id=self._slave
             )
         if isinstance(relays_state, ModbusIOException):
             raise relays_state
@@ -118,7 +111,7 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             try:
                 relay_no = signal.get_hw_property_by_type(
                     self._SIGNAL_PROPERTY_TYPE
-                ).channel_no
+                ).relay_no
             except ValueError:
                 continue
             active_state = signal.get_hw_property_by_type(
@@ -129,7 +122,7 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             )
             with self._modbus:
                 self._modbus.write_coil(
-                    address=relay_no - 1, value=new_state, slave=self._slave
+                    address=relay_no - 1, value=new_state, device_id=self._slave
                 )
 
     def _update_signals_state(
@@ -139,7 +132,7 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             try:
                 relay_no = signal.get_hw_property_by_type(
                     self._SIGNAL_PROPERTY_TYPE
-                ).channel_no
+                ).relay_no
             except ValueError:
                 continue
             active_state = signal.get_hw_property_by_type(
