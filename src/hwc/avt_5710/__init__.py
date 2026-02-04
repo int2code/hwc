@@ -140,7 +140,7 @@ class SignalEnginAvt5710(SignalsEngine):
             try:
                 relay_no = signal.get_hw_property_by_type(
                     self._SIGNAL_PROPERTY_TYPE
-                ).channel_no
+                ).relay_no
             except ValueError:
                 continue
             active_state = signal.get_hw_property_by_type(
@@ -158,7 +158,7 @@ class SignalEnginAvt5710(SignalsEngine):
             try:
                 relay_no = signal.get_hw_property_by_type(
                     self._SIGNAL_PROPERTY_TYPE
-                ).channel_no
+                ).relay_no
             except ValueError:
                 continue
             active_state = signal.get_hw_property_by_type(
