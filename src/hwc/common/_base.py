@@ -154,7 +154,7 @@ class Signals:
 class DISignal(Signal):
     """Digital input signal representation."""
 
-    __slots__ = Signal.__slots__
+    __slots__ = ()
 
     @property
     def state(self):
@@ -167,14 +167,14 @@ class DISignal(Signal):
 class DOSignal(Signal):
     """Digital output signal representation."""
 
-    __slots__ = Signal.__slots__
+    __slots__ = ()
 
     @property
     def state(self) -> bool:
         """State of Digital Output signal."""
         if self.immediate_update:
             self.__read_states__()
-        if not self.__state__ == self.__new_state__:
+        if self.__state__ != self.__new_state__:
             raise RuntimeError("A new state has not been sent to the device.")
         return bool(self.__state__)
 
@@ -193,14 +193,14 @@ class DOSignal(Signal):
 class AOSignal(Signal):
     """Digital output signal representation."""
 
-    __slots__ = Signal.__slots__
+    __slots__ = ()
 
     @property
     def state(self) -> float:
         """State of Digital Output signal."""
         if self.immediate_update:
             self.__read_states__()
-        if not self.__state__ == self.__new_state__:
+        if self.__state__ != self.__new_state__:
             raise RuntimeError("A new state has not been sent to the device.")
         return self.__state__
 
