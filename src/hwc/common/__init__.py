@@ -1,11 +1,22 @@
 """Hardware control module - dedicated to controlling real hardware through a unified API."""
+
 import time
 from typing import List
 
-from ._base import Signal, Signals, SignalProperties, DISignal, DOSignal, SignalsEngine, AOSignal
+from ._base import (
+    Signal,
+    Signals,
+    SignalProperties,
+    DISignal,
+    DOSignal,
+    SignalsEngine,
+    AOSignal,
+)
 
 
-def signal_power_cycle(relays_board: Signals, do_signal_names: List[str], cutoff_time_s=0.25):
+def signal_power_cycle(
+    relays_board: Signals, do_signal_names: List[str], cutoff_time_s=0.25
+):
     """Switch off, wait, switch on DO signal by given name.
 
     :param relays_board: signal instance
