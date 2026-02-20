@@ -91,7 +91,7 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             framer=FramerType.RTU,
         )
 
-    @retry(exceptions=ModbusException, tries=3, delay=1)
+    @retry(exceptions=ModbusException, tries=3, delay=1, jitter=(0.1, 0.5))
     def read_states(self) -> None:
         """Read all signal (relay) states from the board."""
         with self._modbus:
@@ -100,6 +100,10 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             )
         if isinstance(relays_state, ModbusIOException):
             raise relays_state
+        if len(relays_state.bits) != self._number_of_relays:
+            raise ModbusIOException(
+                f"Invalid response received from modbus: {relays_state}"
+            )
 
         self._update_signals_state(relays_state.bits, self._signal_members)
 
@@ -143,7 +147,7 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             state = state if active_state else not state
             signal.__state__ = state
 
-    @retry(exceptions=ModbusException, tries=3, delay=1)
+    @retry(exceptions=ModbusException, tries=3, delay=1, jitter=(0.1, 0.5))
     def write_states(self) -> None:
         """Set all updated signal (relay) states to boards."""
         self._set_relays_states()
