@@ -1,3 +1,7 @@
+### 0.3.1
+
+[PATCH] Handle Waveshare read signals states invalid response lengths.
+
 ### 0.3.0
 
 [MINOR] Add support for analog output signals (Waveshare 8CH Analog Output).
