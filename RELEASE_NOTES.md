@@ -1,3 +1,7 @@
+### 0.3.2
+
+[PATCH] Use socket framer for handling TCP transactions.
+
 ### 0.3.1
 
 [PATCH] Handle Waveshare read signals states invalid response lengths.

@@ -88,7 +88,7 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
         self._modbus = ModbusTcpClient(
             host=host_ip,
             port=port,
-            framer=FramerType.RTU,
+            framer=FramerType.SOCKET,
         )
 
     @retry(exceptions=ModbusException, tries=3, delay=1, jitter=(0.05, 0.25))
@@ -98,12 +98,14 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             relays_state = self._modbus.read_coils(
                 address=0, count=self._number_of_relays, device_id=self._slave
             )
-        if isinstance(relays_state, ModbusIOException):
-            raise relays_state
-        if len(relays_state.bits) != self._number_of_relays:
-            raise ModbusIOException(
-                f"Invalid response received from modbus: {relays_state}"
-            )
+            if isinstance(relays_state, ModbusIOException):
+                raise relays_state
+            if relays_state.isError():
+                raise ModbusIOException(relays_state)
+            if len(relays_state.bits) != self._number_of_relays:
+                raise ModbusIOException(
+                    f"Invalid response received from modbus: {relays_state}"
+                )
 
         self._update_signals_state(relays_state.bits, self._signal_members)
 
@@ -124,10 +126,9 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             new_state = (
                 signal.__new_state__ if active_state else not signal.__new_state__
             )
-            with self._modbus:
-                self._modbus.write_coil(
-                    address=relay_no - 1, value=new_state, device_id=self._slave
-                )
+            self._modbus.write_coil(
+                address=relay_no - 1, value=new_state, device_id=self._slave
+            )
 
     def _update_signals_state(
         self, current_status: List[bool], signals: List["Signal"]
@@ -150,5 +151,6 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
     @retry(exceptions=ModbusException, tries=3, delay=1, jitter=(0.05, 0.25))
     def write_states(self) -> None:
         """Set all updated signal (relay) states to boards."""
-        self._set_relays_states()
-        self.read_states()
+        with self._modbus:
+            self._set_relays_states()
+            self.read_states()
