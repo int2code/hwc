@@ -88,7 +88,8 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
         self._modbus = ModbusTcpClient(
             host=host_ip,
             port=port,
-            framer=FramerType.SOCKET,
+            framer=FramerType.RTU,
+            reconnect_delay=0.5,
         )
 
     @retry(exceptions=ModbusException, tries=3, delay=1, jitter=(0.05, 0.25))
