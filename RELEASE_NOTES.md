@@ -1,6 +1,6 @@
 ### 0.3.2
 
-[PATCH] Use socket framer for handling TCP transactions.
+[PATCH] Improve usage of `ModbusTcpClient`.
 
 ### 0.3.1
 

@@ -89,7 +89,6 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             host=host_ip,
             port=port,
             framer=FramerType.RTU,
-            reconnect_delay=0.5,
         )
 
     @retry(exceptions=ModbusException, tries=3, delay=1, jitter=(0.05, 0.25))
