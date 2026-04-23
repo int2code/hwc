@@ -100,7 +100,7 @@ class SignalEnginWaveShareEthMb(SignalsEngine):
             )
         if isinstance(relays_state, ModbusIOException):
             raise relays_state
-        if len(relays_state.bits) != self._number_of_relays:
+        if len(relays_state.bits) < self._number_of_relays:
             raise ModbusIOException(
                 f"Invalid response received from modbus: {relays_state}"
             )
