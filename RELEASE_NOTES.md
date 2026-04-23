@@ -1,3 +1,7 @@
+### 0.3.2
+
+[PATCH] Fix handling Waveshare read signals states invalid response lengths.
+
 ### 0.3.1
 
 [PATCH] Handle Waveshare read signals states invalid response lengths.
