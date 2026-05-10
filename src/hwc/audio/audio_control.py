@@ -207,7 +207,7 @@ class AudioControl:
         :param channels: output channel count; ``None`` uses *data*'s channel count
         :param blocksize: PortAudio frames per callback buffer (``0`` = driver default)
         :param latency: PortAudio latency hint — ``'low'``, ``'high'``, or seconds
-        :param reinit: re-initialise PortAudio before opening stream (see :meth:`reinit_sounddevice`)
+        :param reinit: re-init PortAudio before opening stream (see :meth:`reinit_sounddevice`)
         :raises RuntimeError: if no output selector is configured
         """
         if not self._audio_out_selector:
