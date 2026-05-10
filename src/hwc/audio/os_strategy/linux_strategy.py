@@ -76,7 +76,7 @@ class LinuxHardwareStrategy(
     def _mount_drive(self, device_name: str | None, serial_number: str) -> Path:
         """Mount the USB drive identified by serial number.
 
-        :param device_name: Optional name of the audio device, used for logging and mount point naming.
+        :param device_name: Optional name of the audio device, used for logging.
         :param serial_number: Serial number of the USB device.
         :return: Path to the mount point if successful, None otherwise.
         """
@@ -142,7 +142,7 @@ class LinuxHardwareStrategy(
 
         uid = os.getuid()
         gid = os.getgid()
-        mount_options = f"uid={uid},gid={gid},sync"  # Use sync to ensure immediate write-through for test reliability
+        mount_options = f"uid={uid},gid={gid},sync"
 
         logger.info("Mounting %s to %s...", block_device, mount_point)
         mount_cmd = [

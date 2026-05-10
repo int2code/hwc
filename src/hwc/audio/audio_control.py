@@ -55,7 +55,7 @@ class AudioControl:
         )
         self._play_pos: int = 0  # current frame index in _play_data
         self._recording: Optional[np.ndarray] = (
-            None  # Buffer written by sd.rec()/sd.playrec(); kept until stop_recording() collects it.
+            None  # Buffer written by sd.rec()/sd.playrec().
         )
 
     def __del__(self):
@@ -207,7 +207,7 @@ class AudioControl:
         :param channels: output channel count; ``None`` uses *data*'s channel count
         :param blocksize: PortAudio frames per callback buffer (``0`` = driver default)
         :param latency: PortAudio latency hint — ``'low'``, ``'high'``, or seconds
-        :param reinit: re-initialise PortAudio before opening the stream (see :meth:`reinit_sounddevice`)
+        :param reinit: re-initialise PortAudio before opening stream (see :meth:`reinit_sounddevice`)
         :raises RuntimeError: if no output selector is configured
         """
         if not self._audio_out_selector:
