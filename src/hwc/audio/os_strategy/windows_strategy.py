@@ -8,7 +8,7 @@ import pythoncom
 import wmi  # pylint: disable=import-error
 from tenacity import retry, stop_after_attempt, wait_incrementing
 
-from base_strategy import (  # pylint: disable=no-name-in-module
+from .base_strategy import (  # pylint: disable=no-name-in-module
     OSHardwareStrategy,
 )
 

@@ -18,9 +18,9 @@ import sounddevice as sd
 from scipy.io import wavfile
 
 if sys.platform == "win32":
-    from os_strategy.windows_strategy import WindowsHardwareStrategy
+    from .os_strategy.windows_strategy import WindowsHardwareStrategy
 else:
-    from os_strategy.linux_strategy import LinuxHardwareStrategy
+    from .os_strategy.linux_strategy import LinuxHardwareStrategy
 
 logger = logging.getLogger(__name__)
 

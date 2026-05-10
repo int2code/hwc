@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 
 import psutil
-from base_strategy import (  # pylint: disable=no-name-in-module
+from .base_strategy import (  # pylint: disable=no-name-in-module
     OSHardwareStrategy,
 )
 
