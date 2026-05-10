@@ -1,3 +1,7 @@
 pymodbus>=3.11
 pyserial
 retry2
+numpy
+sounddevice
+scipy
+tenacity
