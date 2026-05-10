@@ -1,6 +1,6 @@
 ### 0.4.0
 
-[MINOR] Add suppport for controlling audio devices (based on sounddevice library).
+[MINOR] Add support for audio devices (based on sounddevice library).
 
 ### 0.3.2
 
