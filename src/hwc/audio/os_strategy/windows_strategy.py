@@ -4,7 +4,7 @@ import logging
 import gc
 from pathlib import Path
 
-import pythoncom
+import pythoncom  # pylint: disable=import-error
 import wmi  # pylint: disable=import-error
 from tenacity import retry, stop_after_attempt, wait_incrementing
 
