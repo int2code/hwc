@@ -1,3 +1,10 @@
 pymodbus>=3.11
 pyserial
 retry2
+numpy
+sounddevice
+scipy
+tenacity
+psutil
+pywin32; sys_platform == 'win32'
+wmi

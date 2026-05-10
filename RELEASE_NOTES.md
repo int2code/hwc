@@ -1,3 +1,7 @@
+### 0.4.0
+
+[MINOR] Add support for audio devices (based on sounddevice library).
+
 ### 0.3.2
 
 [PATCH] Fix handling Waveshare read signals states invalid response lengths.
