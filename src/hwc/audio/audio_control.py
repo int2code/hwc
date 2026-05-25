@@ -11,6 +11,7 @@ sounddevice / interleaved layout.
 import sys
 import logging
 import time
+from pathlib import Path
 from typing import Optional, Union, Literal
 
 import numpy as np
@@ -275,7 +276,7 @@ class AudioControl:
         :raises RuntimeError: if no output selector is configured
         """
         data, samplerate = self._load_wav(audio_file)
-        logger.info("Loaded %s for playback.", audio_file.split("\\")[-1])
+        logger.info("Loaded %s for playback.", Path(audio_file).name)
         self.play_data(
             data,
             samplerate,
