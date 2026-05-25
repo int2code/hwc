@@ -1,3 +1,7 @@
+### 0.4.1
+
+[PATCH] Fix logging audio filename in play_audio.
+
 ### 0.4.0
 
 [MINOR] Add support for audio devices (based on sounddevice library).
