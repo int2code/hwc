@@ -25,6 +25,185 @@ else:
 
 logger = logging.getLogger(__name__)
 
+#: PortAudio status flags, in the bit order :class:`StreamStats` packs them.
+FLAG_NAMES = (
+    "input_underflow",
+    "input_overflow",
+    "output_underflow",
+    "output_overflow",
+    "priming_output",
+)
+
+#: Individually recorded abnormal callbacks per stream.  Past this the run is
+#: broken in a way the aggregates already describe, so the ring stops growing
+#: and a stream lasting hours cannot exhaust memory.
+MAX_STATUS_EVENTS = 4096
+
+#: A callback slower than this is worth recording even without a status flag:
+#: it is the likely cause of the underflow reported by the *next* one.
+SLOW_CALLBACK_S = 0.05
+
+
+def _describe_flags(bits: int) -> str:
+    """Render a packed status word as readable flag names.
+
+    :param bits: packed flags as stored by :class:`StreamStats`
+    :returns: comma-separated flag names, or ``"none"``
+    """
+    names = [n for i, n in enumerate(FLAG_NAMES) if bits & (1 << i)]
+    return ", ".join(names) if names else "none"
+
+
+class StreamStats:
+    """Accumulate PortAudio callback statistics for one stream.
+
+    Updated from the audio thread, so every method called there does nothing but
+    write numbers into preallocated storage: no logging, no allocation, no locks.
+    Formatting happens in :meth:`summary`, after the stream has stopped — logging
+    from inside a callback would cause the very underflow being measured.
+
+    :param label: name used in log lines, to tell concurrent streams apart
+    """
+
+    __slots__ = (
+        "label",
+        "calls",
+        "frames",
+        "flags_seen",
+        "flag_counts",
+        "dur_sum",
+        "dur_max",
+        "gap_max",
+        "headroom_min",
+        "n_events",
+        "_last_end",
+        "_ev_call",
+        "_ev_flags",
+        "_ev_dur",
+        "_ev_head",
+    )
+
+    def __init__(self, label: str = "stream") -> None:
+        self.label = label
+        self.calls = 0
+        self.frames = 0
+        self.flags_seen = 0
+        self.flag_counts = [0] * len(FLAG_NAMES)
+        self.dur_sum = 0.0
+        self.dur_max = 0.0
+        self.gap_max = 0.0
+        self.headroom_min = float("inf")
+        self.n_events = 0
+        self._last_end = 0.0
+        self._ev_call = np.zeros(MAX_STATUS_EVENTS, dtype=np.int64)
+        self._ev_flags = np.zeros(MAX_STATUS_EVENTS, dtype=np.int32)
+        self._ev_dur = np.zeros(MAX_STATUS_EVENTS, dtype=np.float64)
+        self._ev_head = np.zeros(MAX_STATUS_EVENTS, dtype=np.float64)
+
+    def record(
+        self, frames: int, status, headroom: float, t0: float, t1: float
+    ) -> None:
+        """Record one callback.  **Audio thread only.**
+
+        :param frames: frames this callback handled
+        :param status: the ``sounddevice.CallbackFlags`` PortAudio passed
+        :param headroom: seconds between now and when this buffer reaches the
+            DAC — the margin that must reach zero before the device starves
+        :param t0: ``perf_counter`` before the callback body
+        :param t1: ``perf_counter`` after it
+        """
+        dur = t1 - t0
+        self.calls += 1
+        self.frames += frames
+        self.dur_sum += dur
+        if dur > self.dur_max:
+            self.dur_max = dur
+        if self._last_end:
+            gap = t0 - self._last_end
+            if gap > self.gap_max:
+                self.gap_max = gap
+        self._last_end = t1
+        if 0.0 < headroom < self.headroom_min:
+            self.headroom_min = headroom
+
+        bits = 0
+        if status:
+            for i, name in enumerate(FLAG_NAMES):
+                if getattr(status, name):
+                    bits |= 1 << i
+                    self.flag_counts[i] += 1
+            self.flags_seen |= bits
+
+        if bits or dur > SLOW_CALLBACK_S:
+            i = self.n_events
+            if i < MAX_STATUS_EVENTS:
+                self._ev_call[i] = self.calls
+                self._ev_flags[i] = bits
+                self._ev_dur[i] = dur
+                self._ev_head[i] = headroom
+            self.n_events = i + 1
+
+    @property
+    def had_underflow(self) -> bool:
+        """Whether an output underflow was reported at any point.
+
+        :returns: ``True`` if this machine failed to feed the device in time
+        """
+        return bool(self.flag_counts[FLAG_NAMES.index("output_underflow")])
+
+    def summary(self) -> None:
+        """Log aggregates and every recorded abnormal callback."""
+        if self.calls == 0:
+            logger.info("[%s] no callbacks recorded", self.label)
+            return
+        logger.info(
+            "[%s] %d callbacks, %d frames; callback duration mean=%.3f ms "
+            "max=%.3f ms; longest gap between callbacks=%.1f ms; min DAC "
+            "headroom=%.1f ms",
+            self.label,
+            self.calls,
+            self.frames,
+            self.dur_sum / self.calls * 1e3,
+            self.dur_max * 1e3,
+            self.gap_max * 1e3,
+            (
+                self.headroom_min * 1e3
+                if self.headroom_min != float("inf")
+                else float("nan")
+            ),
+        )
+        for name, count in zip(FLAG_NAMES, self.flag_counts):
+            logger.log(
+                logging.WARNING if count else logging.DEBUG,
+                "[%s]   %-17s %d",
+                self.label,
+                name,
+                count,
+            )
+        if not self.flags_seen and self.n_events == 0:
+            logger.info(
+                "[%s] clean: PortAudio reported no xruns, so any gap in the "
+                "audio originated outside this machine",
+                self.label,
+            )
+            return
+        if self.n_events > MAX_STATUS_EVENTS:
+            logger.warning(
+                "[%s] %d abnormal callbacks; only the first %d were recorded",
+                self.label,
+                self.n_events,
+                MAX_STATUS_EVENTS,
+            )
+        for i in range(min(self.n_events, MAX_STATUS_EVENTS)):
+            logger.warning(
+                "[%s]   callback #%d: %s (duration %.3f ms, DAC headroom %.1f ms)",
+                self.label,
+                int(self._ev_call[i]),
+                _describe_flags(int(self._ev_flags[i])),
+                self._ev_dur[i] * 1e3,
+                self._ev_head[i] * 1e3,
+            )
+
 
 class AudioControl:
     """Audio in/out control backed by sounddevice.
@@ -55,6 +234,7 @@ class AudioControl:
             None  # WAV data loaded into memory for looping playback; shared by the callback.
         )
         self._play_pos: int = 0  # current frame index in _play_data
+        self._out_stats = StreamStats("playback")
         self._recording: Optional[np.ndarray] = (
             None  # Buffer written by sd.rec()/sd.playrec().
         )
@@ -69,6 +249,72 @@ class AudioControl:
             self._out_stream.stop()
             self._out_stream.close()
             self._out_stream = None
+            try:
+                self._out_stats.summary()
+            except Exception:  # pylint:disable=broad-except
+                # Reachable from __del__, where logging may already be torn
+                # down; a lost summary must not break interpreter shutdown.
+                pass
+
+    def _log_stream_open(self, stream, device_index: int, direction: str) -> None:
+        """Log what PortAudio granted for a freshly opened stream.
+
+        Requested settings are hints: PortAudio substitutes what the device can
+        actually do, and the granted blocksize and latency are what determine
+        how much slack there is before an underflow.  Logging them is the only
+        way to know after the fact which was in force.
+
+        :param stream: the started stream
+        :param device_index: sounddevice device index it was opened on
+        :param direction: ``"output"`` or ``"input"``, used in the log line
+        """
+        logger.info("sounddevice %s, %s", sd.__version__, sd.get_portaudio_version()[1])
+        try:
+            info = sd.query_devices(device_index)
+            api = sd.query_hostapis(info["hostapi"])
+            logger.info(
+                "%s device[%s] %r via %s | max in/out ch=%s/%s | device latency "
+                "low=%.4f s high=%.4f s | default sr=%s",
+                direction,
+                device_index,
+                info["name"],
+                api["name"],
+                info["max_input_channels"],
+                info["max_output_channels"],
+                info[f"default_low_{direction}_latency"],
+                info[f"default_high_{direction}_latency"],
+                info["default_samplerate"],
+            )
+        except Exception:  # pylint:disable=broad-except
+            logger.warning("Could not query %s device info", direction, exc_info=True)
+        try:
+            logger.info(
+                "%s stream granted: samplerate=%s blocksize=%s latency=%s "
+                "channels=%s dtype=%s samplesize=%s",
+                direction,
+                stream.samplerate,
+                stream.blocksize,
+                stream.latency,
+                stream.channels,
+                stream.dtype,
+                stream.samplesize,
+            )
+            if stream.blocksize == 0:
+                logger.info(
+                    "blocksize 0 = the driver picks per callback, so frame "
+                    "counts vary between callbacks"
+                )
+        except Exception:  # pylint:disable=broad-except
+            logger.warning("Could not read granted stream settings", exc_info=True)
+
+    @property
+    def out_stats(self) -> StreamStats:
+        """Callback statistics for the current or last playback session.
+
+        :returns: the live :class:`StreamStats`; ``had_underflow`` is the bit
+            that says whether this machine starved the device
+        """
+        return self._out_stats
 
     def _find_host_api_index(self, host_api_name: str) -> int:
         """Return the sounddevice host-API index matching *host_api_name*.
@@ -156,12 +402,25 @@ class AudioControl:
         repeats = (frames + len(data) - 1) // len(data)
         return np.tile(data, (repeats, 1))[:frames]
 
-    # pylint: disable=unused-argument
     def _stream_out_callback(
-        self, outdata: np.ndarray, frames: int, _time, _status
+        self, outdata: np.ndarray, frames: int, time_info, status
     ) -> None:
-        """Fill *outdata* from ``_play_data``, wrapping around at EOF."""
+        """Fill *outdata* from ``_play_data``, wrapping around at EOF.
+
+        Runs on PortAudio's audio thread.  ``status`` carries the over-/underflow
+        flags for this buffer and is recorded rather than discarded: without it
+        a dropout in the captured audio cannot be attributed to this machine or
+        cleared of it.  Recording is arithmetic only — see :class:`StreamStats`.
+
+        :param outdata: buffer to fill, shaped ``(frames, channels)``
+        :param frames: frames requested
+        :param time_info: PortAudio timestamps for this buffer
+        :param status: over-/underflow flags for this buffer
+        """
+        t0 = time.perf_counter()
         if not self._playing_audio:
+            # Still record the final callback before unwinding the stream.
+            self._out_stats.record(frames, status, 0.0, t0, time.perf_counter())
             raise sd.CallbackStop()
 
         play_data_len = len(self._play_data)
@@ -176,6 +435,12 @@ class AudioControl:
             outdata[first:] = self._play_data[:remainder]
             end = remainder
         self._play_pos = end % play_data_len
+
+        try:
+            headroom = time_info.outputBufferDacTime - time_info.currentTime
+        except AttributeError:  # pragma: no cover - host API without timestamps
+            headroom = 0.0
+        self._out_stats.record(frames, status, headroom, t0, time.perf_counter())
 
     # pylint: disable=protected-access
     def reinit_sounddevice(self) -> None:
@@ -236,6 +501,7 @@ class AudioControl:
 
         self._play_data = data
         self._play_pos = 0
+        self._out_stats = StreamStats("playback")  # per-session counters
         channels = self._play_data.shape[1]
         dtype = self._play_data.dtype
         self._playing_audio = True
@@ -251,6 +517,7 @@ class AudioControl:
             latency=latency,
         )
         self._out_stream.start()
+        self._log_stream_open(self._out_stream, out_idx, "output")
         logger.info("Playback started on output device.")
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments
@@ -306,9 +573,17 @@ class AudioControl:
             except Exception:  # pylint:disable=broad-except
                 pass
             if self._out_stream:
+                try:
+                    logger.info(
+                        "Output stream cpu_load at stop: %.3f",
+                        self._out_stream.cpu_load,
+                    )
+                except Exception:  # pylint:disable=broad-except
+                    pass
                 self._out_stream.stop()
                 self._out_stream.close()
                 self._out_stream = None
+            self._out_stats.summary()
 
     def start_recording(  # pylint:disable=too-many-arguments, too-many-positional-arguments
         self,
@@ -345,6 +620,22 @@ class AudioControl:
 
         frames = int(duration_s * sample_rate)
         in_idx = self._find_audio_device_index(**self._audio_in_selector)
+        try:
+            in_info = sd.query_devices(in_idx)
+            logger.info(
+                "input device[%s] %r via %s | max in ch=%s | device latency "
+                "low=%.4f s high=%.4f s | requested blocksize=%s latency=%s",
+                in_idx,
+                in_info["name"],
+                sd.query_hostapis(in_info["hostapi"])["name"],
+                in_info["max_input_channels"],
+                in_info["default_low_input_latency"],
+                in_info["default_high_input_latency"],
+                blocksize,
+                latency,
+            )
+        except Exception:  # pylint:disable=broad-except
+            logger.warning("Could not query input device info", exc_info=True)
 
         if play_file is not None:
             if not self._audio_out_selector:
@@ -396,6 +687,22 @@ class AudioControl:
                 "No recording in progress. Call start_recording() first."
             )
         sd.wait()
+        # rec()/playrec() run their callback inside sounddevice, so the flags
+        # are only reachable afterwards through get_status().  Same question as
+        # for playback: did this machine keep up, or did the audio arrive
+        # already damaged?
+        try:
+            status = sd.get_status()
+        except RuntimeError:
+            status = None  # nothing finished yet; nothing to report
+        if status:
+            flags = [n for n in FLAG_NAMES if getattr(status, n, False)]
+            logger.warning(
+                "Recording finished with PortAudio status flags: %s",
+                ", ".join(flags) or str(status),
+            )
+        else:
+            logger.info("Recording finished with no PortAudio xruns reported.")
         samples = self._recording.copy()
         self._recording = None
         return samples
